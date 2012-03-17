@@ -1,6 +1,6 @@
 Summary: Read Nagios configuration, generate Smokeping configuration files
 Name: smokegios
-Version: 0.1
+Version: 0.2
 Release: 1%{?dist}
 License: GPLv3
 URL: http://projects.jethrocarr.com/p/oss-smokegios/
@@ -55,6 +55,7 @@ install -m0644 pkg/smokegios.logrotate.conf $RPM_BUILD_ROOT%{_sysconfdir}/logrot
 # first time installation?
 if [ $1 == 1 ];
 then
+	# user notice
 	echo ""
 	echo "IMPORTANT: You must configure smokeping to include smokegios configuration, add the following to *** Targets *** section:"
 	echo "### Smokegios Start ###"
@@ -63,6 +64,9 @@ then
 	echo ""
 	echo "Smokegios will run on an hourly basis by default"
 	echo ""
+
+	# touch logfile
+	touch %{_localstatedir}/log/smokegios
 else
 	echo "Executing Smokegios post-upgrade..."
 	%{_bindir}/smokegios -c %{_sysconfdir}/smokeping/smokegios.conf
@@ -84,6 +88,8 @@ rm -rf $RPM_BUILD_ROOT
 
 
 %changelog
-* Mon May 30 2011 Jethro Carr <jethro.carr@amberdms.com> 0.1-1
+* Sun Mar 18 2012 Jethro Carr <jethro.carr@amberdms.com> 0.2-1
+- Cronfile configuration fix
+* Sat Mar 17 2012 Jethro Carr <jethro.carr@amberdms.com> 0.1-1
 - Very first version & package release
 
