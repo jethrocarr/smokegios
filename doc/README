@@ -1,0 +1,67 @@
+SMOKEGIOS
+=========
+
+ABOUT
+-----
+Smokegios is a small Perl5 application that reads a Nagios configuration file
+and generates Smokeping configuration for all the hosts defined.
+
+Hosts are automatically generated in structures based on the hostgroup definitions
+in Nagios - note that at least one hostgroup definition is must for this program
+to work and any hosts not in a host group will be ignored.
+
+The application should be called regularly (eg once an hour), it will check if
+Nagios's configuration has changed and if so, will generate new Smokeping config
+and reload the daemon.
+
+
+INSTALLATION
+------------
+
+See the pkg/ directory for distribution-provided package definitions such as RPM.
+
+1. Install bin/smokegios.pl and etc/smokegios.conf to the desired locations.
+
+# cp bin/smokegios.pl /usr/bin/smokegios
+# cp etc/smokegios.conf /etc/smokeping/smokegios.conf
+
+2. Adjust the configuration to suit requirements.
+
+# vi /etc/smokeping/smokegios.conf
+
+3. Touch the log file & optionally install logrotate configuration from pkg/smokegios.logrotate.conf
+
+# touch /var/log/smokegios
+# cp pkg/smokegios.logrotate.conf /etc/logrotate.d/smokegios
+
+4. Configure cronjob to execute on a regular basis - or install pkg/smokegios.cron
+
+# cp pkg/smokegios.cron /etc/cron.hourly/smokegios
+# chmod +x /etc/cron.hourly/smokegios
+
+5. Make sure smokeping has the following lines in it's configuration file:
+
+### Smokegios Start ###
+### Smokegios End ###
+
+
+6. Complete - run the script with -v to debug for first execution.
+
+
+
+EXECUTION
+---------
+
+Regular execution
+# ./bin/smokegios.pl -c etc/smokegios.conf
+
+With debug & foreground output on:
+# ./bin/smokegios.pl -c etc/smokegios.conf
+
+
+
+LICENSE
+-------
+Smokegios is open source software under the GNU GPL version 3, see doc/COPYING
+
+
