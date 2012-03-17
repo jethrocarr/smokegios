@@ -36,8 +36,8 @@ See the pkg/ directory for distribution-provided package definitions such as RPM
 
 4. Configure cronjob to execute on a regular basis - or install pkg/smokegios.cron
 
-# cp pkg/smokegios.cron /etc/cron.hourly/smokegios
-# chmod +x /etc/cron.hourly/smokegios
+# cp pkg/smokegios.cron /etc/cron.d/smokegios
+# chmod +x /etc/cron.d/smokegios
 
 5. Make sure smokeping has the following lines in it's configuration file:
 
