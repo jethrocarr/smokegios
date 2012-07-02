@@ -310,14 +310,22 @@ foreach my $host ( $nagios->list_hosts() )
 	# menu value is best as hostname
 	$str .= "menu\t= ". $host->host_name ."\n";
 
+	# If we've specified an IP in Nagios (rather than DNS resolution), we probably care enough to have it reflected on the graph
+	my $hostip;
+
+	if ($host->address)
+	{
+		$hostip = "(". $host->address . ")";
+	}
+
 	# set the title to the alias
 	if (!$host->alias)
 	{
-		$str .= "title\t= ". $host->host_name ."\n";
+		$str .= "title\t= ". $host->host_name . $hostip . "\n";
 	}
 	else
 	{
-		$str .= "title\t= ". $host->alias ."\n";
+		$str .= "title\t= ". $host->alias . $hostip . "\n";
 	}
 
 	# host value - this is what smokeping actually relies on for running it's tests against.
