@@ -364,6 +364,12 @@ foreach my $hostgroup ( $nagios->list_hostgroups() )
 {
 	next if ( !length $hostgroup->hostgroup_name );    # avoid a bug in Nagios::Object
 
+	if (!$hostgroup->members)
+	{
+		$log->info("Host group ".$hostgroup->hostgroup_name." has no members!");
+		next;
+	}
+
 	$log->debug("Processing for host group ". $hostgroup->hostgroup_name);
 
 	# assemble configuration
