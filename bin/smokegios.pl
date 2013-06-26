@@ -44,7 +44,7 @@ my $cfg_file = "/etc/smokegios/smokegios.conf";
 
 ### CONFIG LOAD ###
 
-my ($opt_verbose, $opt_help, $opt_config);
+my ($opt_verbose, $opt_help, $opt_config, $opt_force);
 
 
 # get user input
@@ -52,6 +52,7 @@ my ($opt_verbose, $opt_help, $opt_config);
 GetOptions(
 	"h"	=> \$opt_help,		"help"		=> \$opt_help,
 	"v"	=> \$opt_verbose,	"verbose"	=> \$opt_verbose,
+	"f"	=> \$opt_force,		"force"		=> \$opt_force,
 	"c=s"	=> \$opt_config,	"configfile=s"	=> \$opt_config
 );
 
@@ -67,6 +68,11 @@ if ($opt_config)
 	$cfg_file = $opt_config;
 }
 
+if ($opt_force)
+ {
+ 	$opt_force = 1;
+ }
+
 if (!$cfg_file)
 {
 	die("A configuration file must be provided.\n");
@@ -80,12 +86,17 @@ if (! -e $cfg_file)
 
 
 # read in config file
-my ($cfg_smokeping_config, $cfg_smokeping_reload, $cfg_nagios_config, $cfg_smokegios_log_file, $cfg_smokegios_log_debug, $cfg_smokegios_log_debug_fg);
+my ($cfg_no_duplicates,$cfg_smokeping_config, $cfg_smokeping_reload, $cfg_nagios_config, @cfg_nagios_ignore, $cfg_smokegios_log_file, $cfg_smokegios_log_debug, $cfg_smokegios_log_debug_fg);
 
 open(CFG, $cfg_file) || die("Unable to read config file $cfg_file\n");
 
 while (my $line = <CFG>)
 {
+	if ($line =~ /^no_duplicates\s*=\s*"([\S\s]*)"/)
+	{
+		$cfg_no_duplicates = $1;
+	}
+
 	if ($line =~ /^smokeping_config\s*=\s*"([\S\s]*)"/)
 	{
 		$cfg_smokeping_config = $1;
@@ -99,6 +110,10 @@ while (my $line = <CFG>)
 	if ($line =~ /^nagios_config\s*=\s*"([\S\s]*)"/)
 	{
 		$cfg_nagios_config = $1;
+	}
+	if ($line =~ /^nagios_ignore\s*=\s*"([\S\s]*)"/)
+	{
+		@cfg_nagios_ignore = split(/,/,$1);
 	}
 
 	if ($line =~ /^smokegios_log_file\s*=\s*"([\S\s]*)"/)
@@ -252,7 +267,7 @@ my $cfg_nagios_dir			= $tmp_dir;
 my $time_smokeping			= (stat($cfg_smokeping_config))[9];
 my $time_nagios				= (stat($cfg_nagios_dir))[9];
 
-if ($time_nagios <= $time_smokeping)
+if ($time_nagios <= $time_smokeping && !$opt_force)
 {
 	$log->info("Configurations up-to-date, nothing todo");
 	$log->info("Terminated");
@@ -290,6 +305,7 @@ if (scalar(@{ $nagios->{"hostgroup_list"} }) == 0)
 }
 
 
+my @all_hosts;
 
 foreach my $host ( $nagios->list_hosts() )
 {
@@ -304,7 +320,9 @@ foreach my $host ( $nagios->list_hosts() )
 
 	# we need to sanitise the hostname, so that it's only alphanumeric and _, so that smokeping is happy
 	my $safename	= $host->host_name;
+	
 	$safename	=~ s/\W/_/g;
+
 	$str .= "++ $safename\n";
 
 	# menu value is best as hostname
@@ -329,6 +347,7 @@ foreach my $host ( $nagios->list_hosts() )
 	}
 
 	# host value - this is what smokeping actually relies on for running it's tests against.
+	my $smokeping_host;	
 	if (!$host->address)
 	{
 		# no address set - need to decide whether the hostname or alias is more address like - some sites
@@ -336,27 +355,34 @@ foreach my $host ( $nagios->list_hosts() )
 		#
 		# To do this, we use DNS to lookup the alias first, if that's invalid, we fall back to using the hostname.
 		#
-
 		if (gethostbyname($host->host_name))
 		{
-			$str .= "host\t= ". $host->alias ."\n";
+			$smokeping_host = $host->alias;
 		}
 		else
 		{
-			$str .= "host\t= ". $host->host_name ."\n";
+			$smokeping_host = $host->host_name;			
 		}
 	}
 	else
 	{
 		# nagios has an address set, just use that.
-		$str .= "host\t= ". $host->address ."\n";
+		$smokeping_host = $host->address;
+	}
+	 
+	# if configured, avoid duplicate hosts
+	if (grep($_ eq $smokeping_host, @all_hosts) && ($cfg_no_duplicates))
+	{
+		$log->debug("Host already processed \"". $smokeping_host ."\", skipping & continuing.");
+		$log->debug("You may have a duplicate or bug in your Nagios configuration");
+	}
+	else
+	{
+		$str .= "host\t= ". $smokeping_host ."\n\n";
+		$config{ $host->host_name } = $str;
 	}
 	
-	$str .= "\n";
-
-
-	# save to hash
-	$config{ $host->host_name } = $str;
+	push (@all_hosts,$smokeping_host); 
 }
 
 
@@ -367,6 +393,13 @@ foreach my $hostgroup ( $nagios->list_hostgroups() )
 	if (!$hostgroup->members)
 	{
 		$log->info("Host group ".$hostgroup->hostgroup_name." has no members!");
+		next;
+	}
+
+	# Skip host groups in config file
+	if ( grep { $_ eq $hostgroup->hostgroup_name } @cfg_nagios_ignore )
+	{
+		$log->debug("Skipping host group ". $hostgroup->hostgroup_name);
 		next;
 	}
 
@@ -456,7 +489,6 @@ while (my $line = <SMOKEPING_ORIG>)
 
 close(SMOKEPING_ORIG);
 
-
 # write new file
 open(SMOKEPING_NEW, ">", $cfg_smokeping_config) || die("Unable to open smokeping configuration file for writing.\n");
 print SMOKEPING_NEW $config_generated;
@@ -505,6 +537,8 @@ sub print_help()
         print "Options:\n";
         print " -c, --configfile\n";
         print "     config file with settings\n";
+	print " -f, -force\n";
+	print "     update smokeping config file, ignoring smokeping and nagios config file timestamps\n";
 	print " -h, --help\n";
         print "     print detailed help screen.\n";
         print " -v, --verbose\n";
