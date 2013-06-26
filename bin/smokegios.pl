@@ -537,7 +537,7 @@ sub print_help()
         print "Options:\n";
         print " -c, --configfile\n";
         print "     config file with settings\n";
-	print " -f, -force\n";
+	print " -f, --force\n";
 	print "     update smokeping config file, ignoring smokeping and nagios config file timestamps\n";
 	print " -h, --help\n";
         print "     print detailed help screen.\n";
