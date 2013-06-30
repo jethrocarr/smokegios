@@ -39,7 +39,7 @@ install -m0755 bin/smokegios.pl $RPM_BUILD_ROOT/%{_bindir}/smokegios
 
 # install configuration (into the smokeping directory)
 mkdir -p -m075 $RPM_BUILD_ROOT/%{_sysconfdir}/smokeping/
-install -m0644 etc/smokegios.conf $RPM_BUILD_ROOT/%{_sysconfdir}/smokeping/smokegios.conf
+install -m0644 etc/smokegios.conf.sample $RPM_BUILD_ROOT/%{_sysconfdir}/smokeping/smokegios.conf
 
 # install cronfile
 mkdir -p $RPM_BUILD_ROOT/etc/cron.d/
