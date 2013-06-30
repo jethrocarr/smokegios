@@ -66,9 +66,10 @@ system("cp -avr * /tmp/$name_withversion/");
 # we have finished with the orignal source
 chdir("/tmp");
 
-# remove CVS  & SVN stuff
+# Remove version control system directories from tarball
 system("find $name_withversion/* -type d | grep CVS | sed \"s/^/rm -rf /\" | sh");
 system("find $name_withversion/* -type d | grep .svn | sed \"s/^/rm -rf /\" | sh");
+system("find $name_withversion/* -type d | grep .git | sed \"s/^/rm -rf /\" | sh");
 
 # insert version into spec file and write changed version to /tmp/ location
 open(IN, "$name_withversion/pkg/$name_base.spec") || die("Unable to open spec file");
