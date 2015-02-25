@@ -325,6 +325,19 @@ foreach my $host ( $nagios->list_hosts() )
 
 	$str .= "++ $safename\n";
 
+
+	# Is it an ICMP/HTTP/HTTPS check?
+	if ($host->check_command =~ /check_https/)
+	{
+		$log->debug("Host check command is an HTTP/S check");
+		$str .= "probe\t= EchoPingHttps\n";
+	}
+	elsif ($host->check_command =~ /check_http/)
+	{
+		$log->debug("Host check command is an HTTP check");
+		$str .= "probe\t= EchoPingHttp\n";
+	}
+
 	# menu value is best as hostname
 	$str .= "menu\t= ". $host->host_name ."\n";
 
